@@ -2,7 +2,6 @@ const puppeteer = require("puppeteer");
 const _ = require("highland");
 const url = require("url");
 // @ts-ignore
-const mapStackTrace = require("sourcemapped-stacktrace-node").default;
 const path = require("path");
 const fs = require("fs");
 
@@ -28,32 +27,14 @@ const skipThirdPartyRequests = async opt => {
  * @return {void}
  */
 const enableLogging = opt => {
-  const { page, options, route, onError, sourcemapStore } = opt;
+  const { page, options, route, onError } = opt;
   page.on("console", msg => console.log(`✏️  ${route} log:`, msg.text()));
   page.on("error", msg => {
     console.log(`🔥  ${route} error:`, msg);
     onError && onError();
   });
   page.on("pageerror", e => {
-    if (options.sourceMaps) {
-      mapStackTrace(e.stack, {
-        isChromeOrEdge: true,
-        store: sourcemapStore || {}
-      }).then(result => {
-        // TODO: refactor mapStackTrace: return array not a string, return first row too
-        const stackRows = result.split("\n");
-        const puppeteerLine =
-          stackRows.findIndex(x => x.includes("puppeteer")) ||
-          stackRows.length - 1;
-
-        console.log(
-          `🔥  ${route} pageerror: ${e.stack.split("\n")[0] +
-            "\n"}${stackRows.slice(0, puppeteerLine).join("\n")}`
-        );
-      });
-    } else {
-      console.log(`🔥  ${route} pageerror:`, e);
-    }
+    console.log(`🔥  ${route} pageerror:`, e);
     onError && onError();
   });
   page.on("response", response => {
